@@ -9,6 +9,7 @@ class User(BaseModel):
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
+    email_verified = db.Column(db.Boolean, default=False, nullable=False)
     
     # Relationships
     trips = db.relationship('Trip', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -30,6 +31,7 @@ class User(BaseModel):
         data.update({
             'id': self.id,
             'username': self.username,
-            'email': self.email
+            'email': self.email,
+            'email_verified': self.email_verified
         })
         return data

@@ -1,0 +1,35 @@
+meta {
+  name: Add Itinerary Item
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/trips/{{trip_id}}/itinerary
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+:body:json {
+  {
+    "day": 1,
+    "title": "Eiffel Tower Visit",
+    "description": "Visit the iconic Eiffel Tower",
+    "location": "Eiffel Tower, Paris",
+    "latitude": 48.8584,
+    "longitude": 2.2945,
+    "start_time": "2026-06-01T09:00:00",
+    "end_time": "2026-06-01T12:00:00"
+  }
+}
+
+script:post-response {
+  // Save item_id for use in other requests
+  if(bru.getResponseStatus() === 201) {
+    bru.setEnvVar('item_id', res.body.itinerary.id);
+  }
+}

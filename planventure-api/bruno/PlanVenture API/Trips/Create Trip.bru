@@ -1,0 +1,32 @@
+meta {
+  name: Create Trip
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{base_url}}/trips
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+:body:json {
+  {
+    "title": "Summer Vacation",
+    "destination": "Paris, France",
+    "description": "An amazing trip to Paris",
+    "start_date": "2026-06-01T00:00:00",
+    "end_date": "2026-06-15T00:00:00"
+  }
+}
+
+script:post-response {
+  // Save trip_id for use in other requests
+  if(bru.getResponseStatus() === 201) {
+    bru.setEnvVar('trip_id', res.body.trip.id);
+  }
+}

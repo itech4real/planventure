@@ -1,0 +1,18 @@
+meta {
+  name: Register User
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{base_url}}/auth/register
+  body: json
+}
+
+:body:json {
+  {
+    "username": "bruno_test_{{$timestamp}}",
+    "email": "bruno_test_{{$timestamp}}@example.com",
+    "password": "StrongPass1!"
+  }
+}

@@ -1,0 +1,14 @@
+meta {
+  name: Get Itinerary
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/trips/{{trip_id}}/itinerary
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}

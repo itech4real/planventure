@@ -1,0 +1,14 @@
+meta {
+  name: Get Trip
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/trips/{{trip_id}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
