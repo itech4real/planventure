@@ -391,6 +391,256 @@ def delete_itinerary_item(trip_id, item_id):
     
     return jsonify({"message": "Itinerary item deleted successfully"}), 200
 
+# Routes - Trip Sharing & Collaboration
+@app.route('/trips/<int:trip_id>/share', methods=['POST'])
+@jwt_required()
+def share_trip(trip_id):
+    """Share a trip with another user."""
+    from models import TripShare
+    
+    user_id = int(get_jwt_identity())
+    trip = Trip.query.filter_by(id=trip_id, user_id=user_id).first()
+    
+    if not trip:
+        return jsonify({"error": "Trip not found"}), 404
+    
+    data = request.get_json()
+    share_with_email = data.get('email') if data else None
+    permission = data.get('permission', 'view') if data else 'view'
+    
+    if not share_with_email:
+        return jsonify({"error": "Email is required"}), 400
+    
+    shared_user = User.query.filter_by(email=share_with_email).first()
+    if not shared_user:
+        return jsonify({"error": "User not found"}), 404
+    
+    existing = TripShare.query.filter_by(trip_id=trip_id, shared_with_user_id=shared_user.id).first()
+    if existing:
+        return jsonify({"error": "Trip already shared with this user"}), 409
+    
+    share = TripShare(trip_id=trip_id, shared_with_user_id=shared_user.id, permission=permission)
+    db.session.add(share)
+    db.session.commit()
+    
+    return jsonify({"message": "Trip shared successfully", "share": share.to_dict()}), 201
+
+@app.route('/trips/shared', methods=['GET'])
+@jwt_required()
+def get_shared_trips():
+    """Get trips shared with the current user."""
+    from models import TripShare
+    
+    user_id = int(get_jwt_identity())
+    shares = TripShare.query.filter_by(shared_with_user_id=user_id).all()
+    
+    return jsonify([share.to_dict() for share in shares]), 200
+
+@app.route('/trips/<int:trip_id>/share/<int:shared_user_id>', methods=['DELETE'])
+@jwt_required()
+def unshare_trip(trip_id, shared_user_id):
+    """Remove sharing for a trip."""
+    from models import TripShare
+    
+    user_id = int(get_jwt_identity())
+    trip = Trip.query.filter_by(id=trip_id, user_id=user_id).first()
+    
+    if not trip:
+        return jsonify({"error": "Trip not found"}), 404
+    
+    share = TripShare.query.filter_by(trip_id=trip_id, shared_with_user_id=shared_user_id).first()
+    if not share:
+        return jsonify({"error": "Share not found"}), 404
+    
+    db.session.delete(share)
+    db.session.commit()
+    
+    return jsonify({"message": "Trip sharing removed"}), 200
+
+# Routes - Expense Tracking
+@app.route('/trips/<int:trip_id>/expenses', methods=['GET'])
+@jwt_required()
+def get_expenses(trip_id):
+    """Get all expenses for a trip."""
+    from models import Expense
+    
+    user_id = int(get_jwt_identity())
+    trip = Trip.query.filter_by(id=trip_id, user_id=user_id).first()
+    
+    if not trip:
+        return jsonify({"error": "Trip not found"}), 404
+    
+    expenses = Expense.query.filter_by(trip_id=trip_id).all()
+    return jsonify([expense.to_dict() for expense in expenses]), 200
+
+@app.route('/trips/<int:trip_id>/expenses', methods=['POST'])
+@jwt_required()
+def create_expense(trip_id):
+    """Add an expense to a trip."""
+    from models import Expense
+    
+    user_id = int(get_jwt_identity())
+    trip = Trip.query.filter_by(id=trip_id, user_id=user_id).first()
+    
+    if not trip:
+        return jsonify({"error": "Trip not found"}), 404
+    
+    data = request.get_json()
+    
+    if not data or not data.get('category') or not data.get('amount'):
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    expense = Expense(
+        trip_id=trip_id,
+        paid_by_user_id=user_id,
+        category=data['category'],
+        description=data.get('description'),
+        amount=data['amount'],
+        currency=data.get('currency', 'USD'),
+        date=data.get('date')
+    )
+    
+    db.session.add(expense)
+    db.session.commit()
+    
+    return jsonify({"message": "Expense created", "expense": expense.to_dict()}), 201
+
+@app.route('/trips/<int:trip_id>/expenses/<int:expense_id>', methods=['PUT'])
+@jwt_required()
+def update_expense(trip_id, expense_id):
+    """Update an expense."""
+    from models import Expense
+    
+    user_id = int(get_jwt_identity())
+    trip = Trip.query.filter_by(id=trip_id, user_id=user_id).first()
+    
+    if not trip:
+        return jsonify({"error": "Trip not found"}), 404
+    
+    expense = Expense.query.filter_by(id=expense_id, trip_id=trip_id).first()
+    if not expense:
+        return jsonify({"error": "Expense not found"}), 404
+    
+    data = request.get_json()
+    
+    if 'category' in data:
+        expense.category = data['category']
+    if 'amount' in data:
+        expense.amount = data['amount']
+    if 'description' in data:
+        expense.description = data['description']
+    if 'currency' in data:
+        expense.currency = data['currency']
+    if 'date' in data:
+        expense.date = data['date']
+    
+    db.session.commit()
+    
+    return jsonify({"message": "Expense updated", "expense": expense.to_dict()}), 200
+
+@app.route('/trips/<int:trip_id>/expenses/<int:expense_id>', methods=['DELETE'])
+@jwt_required()
+def delete_expense(trip_id, expense_id):
+    """Delete an expense."""
+    from models import Expense
+    
+    user_id = int(get_jwt_identity())
+    trip = Trip.query.filter_by(id=trip_id, user_id=user_id).first()
+    
+    if not trip:
+        return jsonify({"error": "Trip not found"}), 404
+    
+    expense = Expense.query.filter_by(id=expense_id, trip_id=trip_id).first()
+    if not expense:
+        return jsonify({"error": "Expense not found"}), 404
+    
+    db.session.delete(expense)
+    db.session.commit()
+    
+    return jsonify({"message": "Expense deleted"}), 200
+
+# Routes - Trip Search & Filtering
+@app.route('/trips/search', methods=['GET'])
+@jwt_required()
+def search_trips():
+    """Search and filter user's trips."""
+    user_id = int(get_jwt_identity())
+    
+    # Get query parameters
+    search = request.args.get('q', '')
+    destination = request.args.get('destination', '')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    query = Trip.query.filter_by(user_id=user_id)
+    
+    if search:
+        query = query.filter(Trip.title.ilike(f'%{search}%') | Trip.description.ilike(f'%{search}%'))
+    
+    if destination:
+        query = query.filter(Trip.destination.ilike(f'%{destination}%'))
+    
+    if start_date:
+        query = query.filter(Trip.start_date >= start_date)
+    
+    if end_date:
+        query = query.filter(Trip.end_date <= end_date)
+    
+    trips = query.all()
+    
+    return jsonify([trip.to_dict() for trip in trips]), 200
+
+# Routes - Trip Templates
+@app.route('/templates', methods=['GET'])
+def get_templates():
+    """Get all public trip templates."""
+    from models import TripTemplate
+    
+    templates = TripTemplate.query.filter_by(is_public=True).all()
+    return jsonify([template.to_dict() for template in templates]), 200
+
+@app.route('/templates/<int:template_id>', methods=['GET'])
+def get_template(template_id):
+    """Get a specific trip template."""
+    from models import TripTemplate
+    
+    template = TripTemplate.query.get(template_id)
+    if not template or (not template.is_public and (not template.created_by_user_id)):
+        return jsonify({"error": "Template not found"}), 404
+    
+    return jsonify(template.to_dict()), 200
+
+@app.route('/trips/<int:trip_id>/from-template/<int:template_id>', methods=['POST'])
+@jwt_required()
+def create_trip_from_template(trip_id, template_id):
+    """Create itinerary items from a template."""
+    from models import TripTemplate, TemplateItinerary
+    
+    user_id = int(get_jwt_identity())
+    trip = Trip.query.filter_by(id=trip_id, user_id=user_id).first()
+    
+    if not trip:
+        return jsonify({"error": "Trip not found"}), 404
+    
+    template = TripTemplate.query.get(template_id)
+    if not template:
+        return jsonify({"error": "Template not found"}), 404
+    
+    # Create itinerary items from template
+    for template_item in template.template_items:
+        itinerary = Itinerary(
+            trip_id=trip_id,
+            day=template_item.day,
+            title=template_item.title,
+            description=template_item.description,
+            location=template_item.location
+        )
+        db.session.add(itinerary)
+    
+    db.session.commit()
+    
+    return jsonify({"message": "Trip created from template"}), 201
+
 # Routes - User Profile
 @app.route('/profile', methods=['GET'])
 @jwt_required()
