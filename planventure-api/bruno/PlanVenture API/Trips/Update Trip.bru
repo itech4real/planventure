@@ -1,0 +1,22 @@
+meta {
+  name: Update Trip
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{base_url}}/trips/{{trip_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+:body:json {
+  {
+    "title": "Summer Vacation Updated",
+    "description": "Updated trip description"
+  }
+}

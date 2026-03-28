@@ -1,0 +1,14 @@
+meta {
+  name: Delete Itinerary Item
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{base_url}}/trips/{{trip_id}}/itinerary/{{item_id}}
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}

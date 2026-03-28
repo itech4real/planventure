@@ -1,0 +1,22 @@
+meta {
+  name: Update Itinerary Item
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}/trips/{{trip_id}}/itinerary/{{item_id}}
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{access_token}}
+}
+
+:body:json {
+  {
+    "title": "Eiffel Tower & Louvre",
+    "description": "Visit Eiffel Tower and Louvre Museum"
+  }
+}
